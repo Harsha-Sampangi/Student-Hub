@@ -14,7 +14,7 @@ const platforms = [
     name: 'WhatsApp',
     description: 'Join our WhatsApp community group',
     icon: FaWhatsapp,
-    url: 'https://chat.whatsapp.com/studenthub',
+    url: 'https://chat.whatsapp.com/DkrDS0ajX4pGqy1D1O0QXt?mode=gi_t',
     gradient: 'from-green-400 to-green-600',
     shadow: 'shadow-green-500/25',
     hoverBg: 'hover:bg-green-50 dark:hover:bg-green-950/30',

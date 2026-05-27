@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/providers/ThemeProvider';
 import { HiOutlineSun, HiOutlineMoon } from 'react-icons/hi2';
 import { HiOutlineMenuAlt3, HiOutlineX } from 'react-icons/hi';
-import JoinCommunityModal from '@/components/sections/JoinCommunityModal';
+import JoinCommunityModal from '@/components/layout/sections/JoinCommunityModal';
 
 const navLinks = [
   { label: 'Home', href: '/' },

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { mockBlogs } from '@/data/mock';
+import { fetchCollection } from '@/lib/firestore';
 import type { BlogPost } from '@/types';
 
 const fadeInUp = {
@@ -45,17 +45,15 @@ export default function BlogPreview() {
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('sh_blogs');
-    if (saved) {
+    const loadBlogs = async () => {
       try {
-        const parsed = JSON.parse(saved) as BlogPost[];
-        setBlogs(parsed.filter((b) => b.isPublished).slice(0, 3));
+        const data = await fetchCollection<BlogPost>('blogs');
+        setBlogs(data.filter((b) => b.isPublished).slice(0, 3));
       } catch (e) {
-        setBlogs(mockBlogs.filter((b) => b.isPublished).slice(0, 3));
+        console.error('Failed to load blogs preview:', e);
       }
-    } else {
-      setBlogs(mockBlogs.filter((b) => b.isPublished).slice(0, 3));
-    }
+    };
+    loadBlogs();
   }, []);
 
   return (

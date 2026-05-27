@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { mockOpportunities } from '@/data/mock';
+import { fetchCollection } from '@/lib/firestore';
 import type { OpportunityCategory, Opportunity } from '@/types';
 
 const fadeInUp = {
@@ -49,17 +49,15 @@ export default function OpportunitiesPreview() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('sh_opportunities');
-    if (saved) {
+    const loadOpportunities = async () => {
       try {
-        const parsed = JSON.parse(saved) as Opportunity[];
-        setOpportunities(parsed.filter((opp) => opp.isActive).slice(0, 4));
+        const data = await fetchCollection<Opportunity>('opportunities');
+        setOpportunities(data.filter((opp) => opp.isActive).slice(0, 4));
       } catch (e) {
-        setOpportunities(mockOpportunities.filter((opp) => opp.isActive).slice(0, 4));
+        console.error('Failed to load opportunities preview:', e);
       }
-    } else {
-      setOpportunities(mockOpportunities.filter((opp) => opp.isActive).slice(0, 4));
-    }
+    };
+    loadOpportunities();
   }, []);
 
   return (

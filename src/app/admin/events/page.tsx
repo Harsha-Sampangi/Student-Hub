@@ -15,7 +15,7 @@ import {
   HiOutlineMapPin,
   HiOutlineGlobeAlt,
 } from 'react-icons/hi2';
-import { mockEvents } from '@/data/mock';
+import { fetchCollection, addDocument, updateDocument, deleteDocument } from '@/lib/firestore';
 import type { Event } from '@/types';
 
 const modes = ['online', 'offline', 'hybrid'] as const;
@@ -42,26 +42,19 @@ export default function AdminEventsPage() {
   const [posterUrl, setPosterUrl] = useState('');
   const [isActive, setIsActive] = useState(true);
 
-  // Load from localStorage or mock data
-  useEffect(() => {
-    const saved = localStorage.getItem('sh_events');
-    if (saved) {
-      try {
-        setEvents(JSON.parse(saved));
-      } catch (e) {
-        setEvents(mockEvents);
-      }
-    } else {
-      setEvents(mockEvents);
-      localStorage.setItem('sh_events', JSON.stringify(mockEvents));
+  const loadEvents = async () => {
+    try {
+      const data = await fetchCollection<Event>('events');
+      setEvents(data);
+    } catch (e) {
+      console.error('Failed to load events:', e);
     }
-  }, []);
-
-  const saveEvents = (updated: Event[]) => {
-    setEvents(updated);
-    localStorage.setItem('sh_events', JSON.stringify(updated));
-    window.dispatchEvent(new Event('storage'));
   };
+
+  // Load from database
+  useEffect(() => {
+    loadEvents();
+  }, []);
 
   // Filter logic
   const filteredEvents = events.filter((e) => {
@@ -100,7 +93,7 @@ export default function AdminEventsPage() {
     setIsFormOpen(true);
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!title.trim() || !date || !location.trim() || !description.trim() || !registerLink.trim()) {
@@ -108,48 +101,31 @@ export default function AdminEventsPage() {
       return;
     }
 
+    const payload = {
+      title,
+      date,
+      mode,
+      location,
+      description,
+      registerLink,
+      posterUrl,
+      isActive,
+    };
+
     if (editingEvent) {
       // Edit
-      const updated = events.map((evt) =>
-        evt.id === editingEvent.id
-          ? {
-              ...evt,
-              title,
-              date,
-              mode,
-              location,
-              description,
-              registerLink,
-              posterUrl,
-              isActive,
-            }
-          : evt
-      );
-      saveEvents(updated);
+      await updateDocument('events', editingEvent.id, payload);
     } else {
       // Add
-      const newEvent: Event = {
-        id: `event_${Date.now()}`,
-        title,
-        date,
-        mode,
-        location,
-        description,
-        registerLink,
-        posterUrl,
-        isActive,
-        createdAt: new Date().toISOString(),
-      };
-      saveEvents([newEvent, ...events]);
+      await addDocument('events', payload);
     }
+    await loadEvents();
     setIsFormOpen(false);
   };
 
-  const handleToggleActive = (evt: Event) => {
-    const updated = events.map((e) =>
-      e.id === evt.id ? { ...e, isActive: !e.isActive } : e
-    );
-    saveEvents(updated);
+  const handleToggleActive = async (evt: Event) => {
+    await updateDocument('events', evt.id, { isActive: !evt.isActive });
+    await loadEvents();
   };
 
   const openDeleteModal = (evt: Event) => {
@@ -157,10 +133,10 @@ export default function AdminEventsPage() {
     setIsDeleteOpen(true);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (deletingEvent) {
-      const updated = events.filter((e) => e.id !== deletingEvent.id);
-      saveEvents(updated);
+      await deleteDocument('events', deletingEvent.id);
+      await loadEvents();
       setIsDeleteOpen(false);
       setDeletingEvent(null);
     }

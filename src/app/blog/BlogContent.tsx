@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { mockBlogs } from '@/data/mock';
+import { fetchCollection } from '@/lib/firestore';
 import type { BlogPost } from '@/types';
 import {
   HiOutlineClock,
@@ -13,10 +13,14 @@ import {
 
 const gradientPalette = [
   'from-brand-teal to-brand-blue',
-  'from-brand-blue to-indigo-500',
-  'from-brand-amber to-orange-500',
-  'from-emerald-400 to-brand-teal',
+  'from-indigo-500 to-purple-600',
+  'from-pink-500 to-rose-500',
+  'from-amber-400 to-orange-500',
 ];
+
+function getGradient(index: number) {
+  return gradientPalette[index % gradientPalette.length];
+}
 
 const categoryColorMap: Record<string, string> = {
   Career: 'bg-brand-teal/10 text-brand-teal',
@@ -26,9 +30,10 @@ const categoryColorMap: Record<string, string> = {
 };
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-IN', {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-IN', {
     day: 'numeric',
-    month: 'long',
+    month: 'short',
     year: 'numeric',
   });
 }
@@ -47,16 +52,15 @@ export default function BlogContent() {
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('sh_blogs');
-    if (saved) {
+    const loadBlogs = async () => {
       try {
-        setBlogs(JSON.parse(saved));
+        const data = await fetchCollection<BlogPost>('blogs');
+        setBlogs(data);
       } catch (e) {
-        setBlogs(mockBlogs);
+        console.error('Failed to load blogs:', e);
       }
-    } else {
-      setBlogs(mockBlogs);
-    }
+    };
+    loadBlogs();
   }, []);
 
   const published = useMemo(() => {

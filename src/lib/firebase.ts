@@ -17,4 +17,10 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
+
+export function isFirebaseConfigured(): boolean {
+  const key = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+  return !!key && key !== 'your-api-key-here' && key !== 'demo-api-key';
+}
+
 export default app;

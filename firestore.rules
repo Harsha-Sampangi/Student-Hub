@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper to check if request is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Rules for public-read, admin-write collections
+    match /opportunities/{document} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+    match /events/{document} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+    match /blogs/{document} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+    match /resources/{document} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+    match /team/{document} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+    match /stats/{document} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+  }
+}

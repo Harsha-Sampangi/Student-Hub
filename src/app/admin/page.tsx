@@ -8,7 +8,12 @@ import {
   mockEvents,
   mockBlogs,
   mockResources,
+  mockTeam,
 } from '@/data/mock';
+import { fetchCollection } from '@/lib/firestore';
+import { db, isFirebaseConfigured } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import type { Opportunity, Event as HubEvent, BlogPost, Resource } from '@/types';
 import {
   HiOutlineRocketLaunch,
   HiOutlineCalendarDays,
@@ -132,79 +137,120 @@ export default function AdminDashboardPage() {
   const [blogCount, setBlogCount] = useState(0);
   const [resourceCount, setResourceCount] = useState(0);
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
+  const [isConfigured, setIsConfigured] = useState(false);
+  const [seeding, setSeeding] = useState(false);
 
   useEffect(() => {
-    // Opportunities
-    let opps = mockOpportunities;
-    const oppsSaved = localStorage.getItem('sh_opportunities');
-    if (oppsSaved) {
+    setIsConfigured(isFirebaseConfigured());
+
+    const loadDashboardData = async () => {
       try {
-        opps = JSON.parse(oppsSaved);
-      } catch (e) {}
-    }
+        const opps = await fetchCollection<Opportunity>('opportunities');
+        const evts = await fetchCollection<HubEvent>('events');
+        const blgs = await fetchCollection<BlogPost>('blogs');
+        const rscs = await fetchCollection<Resource>('resources');
 
-    // Events
-    let evts = mockEvents;
-    const evtsSaved = localStorage.getItem('sh_events');
-    if (evtsSaved) {
-      try {
-        evts = JSON.parse(evtsSaved);
-      } catch (e) {}
-    }
+        setOppCount(opps.length);
+        setEventCount(evts.length);
+        setBlogCount(blgs.length);
+        setResourceCount(rscs.length);
 
-    // Blogs
-    let blgs = mockBlogs;
-    const blgsSaved = localStorage.getItem('sh_blogs');
-    if (blgsSaved) {
-      try {
-        blgs = JSON.parse(blgsSaved);
-      } catch (e) {}
-    }
-
-    // Resources
-    let rscs = mockResources;
-    const rscsSaved = localStorage.getItem('sh_resources');
-    if (rscsSaved) {
-      try {
-        rscs = JSON.parse(rscsSaved);
-      } catch (e) {}
-    }
-
-    setOppCount(opps.length);
-    setEventCount(evts.length);
-    setBlogCount(blgs.length);
-    setResourceCount(rscs.length);
-
-    // Compute recent activities
-    const items: ActivityItem[] = [
-      ...opps.map((o) => ({
-        type: 'Opportunity',
-        title: o.title,
-        date: o.createdAt,
-        color: 'text-brand-teal',
-      })),
-      ...evts.map((e) => ({
-        type: 'Event',
-        title: e.title,
-        date: e.createdAt,
-        color: 'text-brand-amber',
-      })),
-      ...blgs.map((b) => ({
-        type: 'Blog Post',
-        title: b.title,
-        date: b.createdAt,
-        color: 'text-brand-blue',
-      })),
-      ...rscs.map((r) => ({
-        type: 'Resource',
-        title: r.title,
-        date: r.createdAt,
-        color: 'text-purple-500',
-      })),
-    ];
-    items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    setRecentActivity(items.slice(0, 5));
+        // Compute recent activities
+        const items: ActivityItem[] = [
+          ...opps.map((o) => ({
+            type: 'Opportunity',
+            title: o.title,
+            date: o.createdAt || new Date().toISOString(),
+            color: 'text-brand-teal',
+          })),
+          ...evts.map((e) => ({
+            type: 'Event',
+            title: e.title,
+            date: e.createdAt || new Date().toISOString(),
+            color: 'text-brand-amber',
+          })),
+          ...blgs.map((b) => ({
+            type: 'Blog Post',
+            title: b.title,
+            date: b.createdAt || new Date().toISOString(),
+            color: 'text-brand-blue',
+          })),
+          ...rscs.map((r) => ({
+            type: 'Resource',
+            title: r.title,
+            date: r.createdAt || new Date().toISOString(),
+            color: 'text-purple-500',
+          })),
+        ];
+        items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setRecentActivity(items.slice(0, 5));
+      } catch (e) {
+        console.error('Failed to load dashboard metrics:', e);
+      }
+    };
+    loadDashboardData();
   }, []);
+
+  const handleSeedDatabase = async () => {
+    if (!confirm('Are you sure you want to seed the Firestore database with initial mock data? This will add mock items to your live collections.')) {
+      return;
+    }
+    setSeeding(true);
+    try {
+      // 1. Seed opportunities
+      for (const opp of mockOpportunities) {
+        const { id, ...data } = opp;
+        await addDoc(collection(db, 'opportunities'), {
+          ...data,
+          createdAt: serverTimestamp()
+        });
+      }
+      
+      // 2. Seed events
+      for (const evt of mockEvents) {
+        const { id, ...data } = evt;
+        await addDoc(collection(db, 'events'), {
+          ...data,
+          createdAt: serverTimestamp()
+        });
+      }
+      
+      // 3. Seed blogs
+      for (const blog of mockBlogs) {
+        const { id, ...data } = blog;
+        await addDoc(collection(db, 'blogs'), {
+          ...data,
+          createdAt: serverTimestamp()
+        });
+      }
+      
+      // 4. Seed resources
+      for (const res of mockResources) {
+        const { id, ...data } = res;
+        await addDoc(collection(db, 'resources'), {
+          ...data,
+          createdAt: serverTimestamp()
+        });
+      }
+
+      // 5. Seed team
+      for (const t of mockTeam) {
+        const { id, ...data } = t;
+        await addDoc(collection(db, 'team'), {
+          ...data,
+          createdAt: serverTimestamp()
+        });
+      }
+
+      alert('Database seeded successfully! All mock opportunities, events, blogs, resources, and team members have been uploaded to Firestore.');
+      window.location.reload();
+    } catch (e: any) {
+      console.error('Failed to seed database:', e);
+      alert(`Failed to seed database: ${e.message}`);
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   const stats = [
     {
@@ -244,22 +290,40 @@ export default function AdminDashboardPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-8">
       {/* Page Header */}
-      <div>
-        <motion.h2
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-2xl font-bold text-text-primary font-display sm:text-3xl"
-        >
-          Dashboard
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mt-1 text-sm text-text-tertiary"
-        >
-          Welcome back! Here&apos;s an overview of your community.
-        </motion.p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <motion.h2
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-2xl font-bold text-text-primary font-display sm:text-3xl"
+          >
+            Dashboard
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mt-1 text-sm text-text-tertiary flex items-center gap-2"
+          >
+            Status:{' '}
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${isConfigured ? 'bg-green-500/10 text-green-500' : 'bg-brand-amber/10 text-brand-amber'}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${isConfigured ? 'bg-green-500 animate-pulse' : 'bg-brand-amber'}`} />
+              {isConfigured ? 'Connected to Firestore' : 'LocalStorage Fallback'}
+            </span>
+          </motion.p>
+        </div>
+
+        {isConfigured && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            onClick={handleSeedDatabase}
+            disabled={seeding}
+            className="flex items-center justify-center gap-2 rounded-xl bg-brand-teal hover:bg-brand-teal-dark px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-teal/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+          >
+            {seeding ? 'Seeding Firestore...' : 'Seed Firestore DB'}
+          </motion.button>
+        )}
       </div>
 
       {/* Stat Cards */}

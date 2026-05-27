@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { mockEvents } from '@/data/mock';
 import type { Event } from '@/types';
+import { fetchCollection } from '@/lib/firestore';
 import {
   HiOutlineCalendarDays,
   HiOutlineMapPin,
@@ -70,16 +71,15 @@ export default function EventsContent() {
   const [activeMode, setActiveMode] = useState<(typeof modes)[number]>('All');
 
   useEffect(() => {
-    const saved = localStorage.getItem('sh_events');
-    if (saved) {
+    const loadEvents = async () => {
       try {
-        setEvents(JSON.parse(saved));
+        const data = await fetchCollection<Event>('events');
+        setEvents(data);
       } catch (e) {
-        setEvents(mockEvents);
+        console.error('Failed to load events:', e);
       }
-    } else {
-      setEvents(mockEvents);
-    }
+    };
+    loadEvents();
   }, []);
 
   const filtered = useMemo(() => {

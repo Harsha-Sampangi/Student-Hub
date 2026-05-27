@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { mockOpportunities } from '@/data/mock';
+import { fetchCollection } from '@/lib/firestore';
 import type { Opportunity, OpportunityCategory } from '@/types';
 import {
   HiOutlineMagnifyingGlass,
@@ -81,16 +81,15 @@ export default function OpportunitiesContent() {
   const [activeMode, setActiveMode] = useState<(typeof modes)[number]>('All');
 
   useEffect(() => {
-    const saved = localStorage.getItem('sh_opportunities');
-    if (saved) {
+    const loadOpportunities = async () => {
       try {
-        setOpportunities(JSON.parse(saved));
+        const data = await fetchCollection<Opportunity>('opportunities');
+        setOpportunities(data);
       } catch (e) {
-        setOpportunities(mockOpportunities);
+        console.error('Failed to load opportunities:', e);
       }
-    } else {
-      setOpportunities(mockOpportunities);
-    }
+    };
+    loadOpportunities();
   }, []);
 
   const filtered = useMemo(() => {

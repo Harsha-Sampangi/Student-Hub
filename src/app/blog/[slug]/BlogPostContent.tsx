@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import type { BlogPost } from '@/types';
-import { mockBlogs } from '@/data/mock';
+import { fetchCollection, fetchDocument } from '@/lib/firestore';
 import {
   HiOutlineArrowLeft,
   HiOutlineClock,
@@ -65,41 +65,25 @@ export default function BlogPostContent({
       return;
     }
 
-    const saved = localStorage.getItem('sh_blogs');
-    if (saved) {
+    const loadPostData = async () => {
+      setLoading(true);
       try {
-        const blogs: BlogPost[] = JSON.parse(saved);
-        const found = blogs.find((b) => b.slug === slug && b.isPublished);
-        if (found) {
+        const found = await fetchDocument<BlogPost>('blogs', slug);
+        if (found && found.isPublished) {
           setPost(found);
-          const related = blogs
+          const allBlogs = await fetchCollection<BlogPost>('blogs');
+          const related = allBlogs
             .filter((b) => b.isPublished && b.id !== found.id)
             .slice(0, 2);
           setRelatedPosts(related);
-        } else {
-          const mockFound = mockBlogs.find((b) => b.slug === slug && b.isPublished);
-          if (mockFound) {
-            setPost(mockFound);
-            const related = mockBlogs
-              .filter((b) => b.isPublished && b.id !== mockFound.id)
-              .slice(0, 2);
-            setRelatedPosts(related);
-          }
         }
       } catch (e) {
-        console.error(e);
+        console.error('Failed to load post:', e);
+      } finally {
+        setLoading(false);
       }
-    } else {
-      const mockFound = mockBlogs.find((b) => b.slug === slug && b.isPublished);
-      if (mockFound) {
-        setPost(mockFound);
-        const related = mockBlogs
-          .filter((b) => b.isPublished && b.id !== mockFound.id)
-          .slice(0, 2);
-        setRelatedPosts(related);
-      }
-    }
-    setLoading(false);
+    };
+    loadPostData();
   }, [slug, initialPost]);
 
   if (loading) {

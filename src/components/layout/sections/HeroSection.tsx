@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import JoinCommunityModal from '@/components/sections/JoinCommunityModal';
+import JoinCommunityModal from './JoinCommunityModal';
 import Link from 'next/link';
 
 export default function HeroSection() {

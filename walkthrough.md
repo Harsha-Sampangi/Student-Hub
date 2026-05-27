@@ -16,9 +16,11 @@ We have built a responsive, production-ready community website for **Student Hub
 
 ## 2. Key Changes Made
 
-In this session, we resolved a selector collision inside the test verification suite (`test_flow.js`):
-- **Problem**: When testing the Resources CRUD step, `page.select('select:nth-of-type(1)', ...)` collided with the main listing filters instead of targeting the newly opened modal form dropdowns.
-- **Solution**: Replaced CSS-selector-based `page.select` calls with scoped `page.evaluate()` block functions. The updated logic locates the `<select>` element within the modal `<form>` element containing the desired option values (e.g. `'Roadmaps'`, `'repo'`, `'hybrid'`), sets their values programmatically, and dispatches a `'change'` event to trigger React state updates.
+In this session, we integrated **Firebase** (Firestore and Auth) and implemented a unified local storage fallback pattern:
+- **Firebase Configuration & Credentials**: Setup Firebase configuration in `.env.local` pointing to the GCP project `student-hub-india-2026` with default database region `asia-south1`.
+- **Unified Local Storage Sync**: Added `shouldStoreLocally()` helper in `src/lib/firestore.ts`. If Firebase Auth fails to initialize (or falls back to local credentials `admin@studenthub.in`), both read and write operations are routed to `localStorage`. This ensures full consistency between admin edits and public views in offline/fallback mode.
+- **Next.js Compilation Fixes**: Resolved missing imports for `fetchCollection` in public events and resources listing pages, and fixed import paths in `src/app/page.tsx` and `src/components/layout/Navbar.tsx` to target the correct `@/components/layout/sections/` folder structure.
+- **E2E Automation Testing Success**: Re-ran the Puppeteer test suite on the live Next.js compilation. The suite passed 100% successfully on all modules: Opportunities, Events, Blog, Resources, and dynamic routes.
 
 ---
 

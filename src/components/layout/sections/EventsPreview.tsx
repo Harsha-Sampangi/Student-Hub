@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { mockEvents } from '@/data/mock';
+import { fetchCollection } from '@/lib/firestore';
 import type { Event } from '@/types';
 
 const fadeInUp = {
@@ -44,17 +44,15 @@ export default function EventsPreview() {
   const [events, setEvents] = useState<Event[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('sh_events');
-    if (saved) {
+    const loadEvents = async () => {
       try {
-        const parsed = JSON.parse(saved) as Event[];
-        setEvents(parsed.filter((evt) => evt.isActive).slice(0, 3));
+        const data = await fetchCollection<Event>('events');
+        setEvents(data.filter((evt) => evt.isActive).slice(0, 3));
       } catch (e) {
-        setEvents(mockEvents.filter((evt) => evt.isActive).slice(0, 3));
+        console.error('Failed to load events preview:', e);
       }
-    } else {
-      setEvents(mockEvents.filter((evt) => evt.isActive).slice(0, 3));
-    }
+    };
+    loadEvents();
   }, []);
 
   return (

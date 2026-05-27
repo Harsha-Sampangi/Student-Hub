@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { mockResources } from '@/data/mock';
 import type { ResourceCategory, Resource } from '@/types';
+import { fetchCollection } from '@/lib/firestore';
 import {
   HiOutlineMagnifyingGlass,
   HiOutlineDocumentText,
@@ -58,7 +59,7 @@ const categoryColorMap: Record<string, string> = {
   Learning: 'bg-brand-blue/10 text-brand-blue',
   'GitHub Repos': 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
   'Career Prep': 'bg-brand-amber/10 text-brand-amber-dark',
-  Tools: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
+  Tools: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:emerald-400',
 };
 
 const fadeInUp = {
@@ -79,16 +80,15 @@ export default function ResourcesContent() {
   );
 
   useEffect(() => {
-    const saved = localStorage.getItem('sh_resources');
-    if (saved) {
+    const loadResources = async () => {
       try {
-        setResources(JSON.parse(saved));
+        const data = await fetchCollection<Resource>('resources');
+        setResources(data);
       } catch (e) {
-        setResources(mockResources);
+        console.error('Failed to load resources:', e);
       }
-    } else {
-      setResources(mockResources);
-    }
+    };
+    loadResources();
   }, []);
 
   const filtered = useMemo(() => {

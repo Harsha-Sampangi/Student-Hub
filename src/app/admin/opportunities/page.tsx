@@ -16,7 +16,7 @@ import {
   HiOutlineCalendarDays,
   HiOutlineGlobeAlt,
 } from 'react-icons/hi2';
-import { mockOpportunities } from '@/data/mock';
+import { fetchCollection, addDocument, updateDocument, deleteDocument } from '@/lib/firestore';
 import type { Opportunity, OpportunityCategory } from '@/types';
 
 const categories: OpportunityCategory[] = [
@@ -56,27 +56,19 @@ export default function AdminOpportunitiesPage() {
   const [mode, setMode] = useState<'online' | 'offline' | 'hybrid'>('online');
   const [isActive, setIsActive] = useState(true);
 
-  // Load from localStorage or mock data
-  useEffect(() => {
-    const saved = localStorage.getItem('sh_opportunities');
-    if (saved) {
-      try {
-        setOpportunities(JSON.parse(saved));
-      } catch (e) {
-        setOpportunities(mockOpportunities);
-      }
-    } else {
-      setOpportunities(mockOpportunities);
-      localStorage.setItem('sh_opportunities', JSON.stringify(mockOpportunities));
+  const loadOpportunities = async () => {
+    try {
+      const data = await fetchCollection<Opportunity>('opportunities');
+      setOpportunities(data);
+    } catch (e) {
+      console.error('Failed to load opportunities:', e);
     }
-  }, []);
-
-  const saveOpportunities = (updated: Opportunity[]) => {
-    setOpportunities(updated);
-    localStorage.setItem('sh_opportunities', JSON.stringify(updated));
-    // Trigger storage event for cross-tab sync or component refresh
-    window.dispatchEvent(new Event('storage'));
   };
+
+  // Load from database
+  useEffect(() => {
+    loadOpportunities();
+  }, []);
 
   // Filter logic
   const filteredOpportunities = opportunities.filter((opp) => {
@@ -117,7 +109,7 @@ export default function AdminOpportunitiesPage() {
     setIsFormOpen(true);
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!title.trim() || !location.trim() || !deadline || !platform.trim() || !applyLink.trim() || !description.trim()) {
@@ -125,50 +117,32 @@ export default function AdminOpportunitiesPage() {
       return;
     }
 
+    const payload = {
+      title,
+      category,
+      location,
+      deadline,
+      platform,
+      applyLink,
+      description,
+      mode,
+      isActive,
+    };
+
     if (editingOpp) {
       // Edit
-      const updated = opportunities.map((o) =>
-        o.id === editingOpp.id
-          ? {
-              ...o,
-              title,
-              category,
-              location,
-              deadline,
-              platform,
-              applyLink,
-              description,
-              mode,
-              isActive,
-            }
-          : o
-      );
-      saveOpportunities(updated);
+      await updateDocument('opportunities', editingOpp.id, payload);
     } else {
       // Add
-      const newOpp: Opportunity = {
-        id: `opp_${Date.now()}`,
-        title,
-        category,
-        location,
-        deadline,
-        platform,
-        applyLink,
-        description,
-        mode,
-        isActive,
-        createdAt: new Date().toISOString(),
-      };
-      saveOpportunities([newOpp, ...opportunities]);
+      await addDocument('opportunities', payload);
     }
+    await loadOpportunities();
     setIsFormOpen(false);
   };
 
-  const handleToggleActive = (opp: Opportunity) => {
-    const updated = opportunities.map((o) =>
-      o.id === opp.id ? { ...o, isActive: !o.isActive } : o
-    );
-    saveOpportunities(updated);
+  const handleToggleActive = async (opp: Opportunity) => {
+    await updateDocument('opportunities', opp.id, { isActive: !opp.isActive });
+    await loadOpportunities();
   };
 
   const openDeleteModal = (opp: Opportunity) => {
@@ -176,10 +150,10 @@ export default function AdminOpportunitiesPage() {
     setIsDeleteOpen(true);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (deletingOpp) {
-      const updated = opportunities.filter((o) => o.id !== deletingOpp.id);
-      saveOpportunities(updated);
+      await deleteDocument('opportunities', deletingOpp.id);
+      await loadOpportunities();
       setIsDeleteOpen(false);
       setDeletingOpp(null);
     }

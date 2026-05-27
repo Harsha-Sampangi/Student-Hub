@@ -15,7 +15,7 @@ import {
   HiOutlineUser,
   HiOutlineTag,
 } from 'react-icons/hi2';
-import { mockBlogs } from '@/data/mock';
+import { fetchCollection, addDocument, updateDocument, deleteDocument } from '@/lib/firestore';
 import type { BlogPost } from '@/types';
 
 export default function AdminBlogPage() {
@@ -42,26 +42,19 @@ export default function AdminBlogPage() {
   const [readingTime, setReadingTime] = useState<number>(5);
   const [isPublished, setIsPublished] = useState(true);
 
-  // Load from localStorage or mock data
-  useEffect(() => {
-    const saved = localStorage.getItem('sh_blogs');
-    if (saved) {
-      try {
-        setBlogs(JSON.parse(saved));
-      } catch (e) {
-        setBlogs(mockBlogs);
-      }
-    } else {
-      setBlogs(mockBlogs);
-      localStorage.setItem('sh_blogs', JSON.stringify(mockBlogs));
+  const loadBlogs = async () => {
+    try {
+      const data = await fetchCollection<BlogPost>('blogs');
+      setBlogs(data);
+    } catch (e) {
+      console.error('Failed to load blogs:', e);
     }
-  }, []);
-
-  const saveBlogs = (updated: BlogPost[]) => {
-    setBlogs(updated);
-    localStorage.setItem('sh_blogs', JSON.stringify(updated));
-    window.dispatchEvent(new Event('storage'));
   };
+
+  // Load from database
+  useEffect(() => {
+    loadBlogs();
+  }, []);
 
   // Auto-generate slug from title
   const handleTitleChange = (val: string) => {
@@ -119,7 +112,7 @@ export default function AdminBlogPage() {
     setIsFormOpen(true);
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!title.trim() || !slug.trim() || !content.trim() || !excerpt.trim() || !category.trim() || !author.trim()) {
@@ -132,54 +125,34 @@ export default function AdminBlogPage() {
       .map((t) => t.trim())
       .filter((t) => t.length > 0);
 
+    const payload = {
+      title,
+      slug,
+      content,
+      excerpt,
+      tags: tagsArray,
+      category,
+      author,
+      authorAvatar: authorAvatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${author}`,
+      thumbnailUrl: thumbnailUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97',
+      readingTime: Number(readingTime),
+      isPublished,
+    };
+
     if (editingBlog) {
       // Edit
-      const updated = blogs.map((b) =>
-        b.id === editingBlog.id
-          ? {
-              ...b,
-              title,
-              slug,
-              content,
-              excerpt,
-              tags: tagsArray,
-              category,
-              author,
-              authorAvatar: authorAvatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${author}`,
-              thumbnailUrl: thumbnailUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97',
-              readingTime: Number(readingTime),
-              isPublished,
-            }
-          : b
-      );
-      saveBlogs(updated);
+      await updateDocument('blogs', editingBlog.id, payload);
     } else {
       // Add
-      const newBlog: BlogPost = {
-        id: `blog_${Date.now()}`,
-        title,
-        slug,
-        content,
-        excerpt,
-        tags: tagsArray,
-        category,
-        author,
-        authorAvatar: authorAvatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${author}`,
-        thumbnailUrl: thumbnailUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97',
-        readingTime: Number(readingTime),
-        isPublished,
-        createdAt: new Date().toISOString(),
-      };
-      saveBlogs([newBlog, ...blogs]);
+      await addDocument('blogs', payload);
     }
+    await loadBlogs();
     setIsFormOpen(false);
   };
 
-  const handleTogglePublished = (blog: BlogPost) => {
-    const updated = blogs.map((b) =>
-      b.id === blog.id ? { ...b, isPublished: !b.isPublished } : b
-    );
-    saveBlogs(updated);
+  const handleTogglePublished = async (blog: BlogPost) => {
+    await updateDocument('blogs', blog.id, { isPublished: !blog.isPublished });
+    await loadBlogs();
   };
 
   const openDeleteModal = (blog: BlogPost) => {
@@ -187,10 +160,10 @@ export default function AdminBlogPage() {
     setIsDeleteOpen(true);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (deletingBlog) {
-      const updated = blogs.filter((b) => b.id !== deletingBlog.id);
-      saveBlogs(updated);
+      await deleteDocument('blogs', deletingBlog.id);
+      await loadBlogs();
       setIsDeleteOpen(false);
       setDeletingBlog(null);
     }

@@ -49,12 +49,41 @@ The visual interface is designed to emulate **Apple-style clean layouts** with a
 
 ## 🛠️ Technology Stack
 
-- **Framework**: [Next.js 15 (App Router)](https://nextjs.org/)
+- **Framework**: [Next.js 15 (App Router)](https://nextjs.org/) (with React 19)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **Styles**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **Animations**: [Framer Motion](https://www.framer.com/motion/)
-- **Icons**: [React Icons (Heroicons v2 Pack)](https://react-icons.github.io/react-icons/)
-- **Local Persistence / State Fallback**: Graceful local state system reading from and writing to `localStorage` on the client. Bypasses backend/db keys during testing or credentials absence, enabling direct out-of-the-box local data editing that instantly syncs to public pages.
+- **Styles**: [Tailwind CSS v4](https://tailwindcss.com/) (modern typography and styling tokens)
+- **Animations**: [Framer Motion](https://www.framer.com/motion/) (premium hover, scroll-triggered, and modal animation transitions)
+- **Backend & Database**: [Firebase Suite](https://firebase.google.com/) (Firestore database, Firebase Auth, and Storage)
+- **Fallback Persistence**: LocalStorage fallback interface running automatically during offline testing or when Firebase services are partially initialized.
+
+---
+
+## 🔥 Firebase Integration & Fallback Architecture
+
+To ensure the application is robust, easy to test locally, and production-ready, it employs a **hybrid storage architecture** that transparently bridges Firestore with `localStorage`.
+
+### 1. Database Operations (`src/lib/firestore.ts`)
+- All CRUD methods (`fetchCollection`, `fetchDocument`, `addDocument`, `updateDocument`, `deleteDocument`) dynamically detect the active environment status.
+- **Unified Sync Check**: If the system detects a local fallback session (e.g. `sh_mock_user` is active in `localStorage` or `isFirebaseConfigured()` is false), it routes all database queries (both reads and writes) to local storage. This guarantees full client-side synchronization and E2E testing validity even when Firebase Auth is unconfigured or offline.
+- If a valid Firebase environment is detected and the admin is logged in via Firebase Auth, all operations transact with the live Cloud Firestore database.
+
+### 2. Authentication Flow (`src/providers/AuthProvider.tsx`)
+- **Dual Identity Routing**: On login (`/admin/login`), the system attempts to authenticate the user against **Firebase Auth**.
+- **Local Fallback**: If the Firebase Auth API returns an error indicating it is not enabled or set up yet (e.g., `auth/configuration-not-found`), the provider falls back to validating the credentials locally against pre-set credentials:
+  - **Email**: `admin@studenthub.in`
+  - **Password**: `StudentHub@2026`
+- On validation success, it persists a mock session object (`sh_mock_user`), letting the developer inspect and manipulate data immediately without manual database provisioning.
+
+### 3. Security Rules (`firestore.rules`)
+Firestore enforces granular access rules matching the community layout:
+- **Public Collections**: `opportunities`, `events`, `blogs`, `resources`, `team`, and `stats` are open for anyone to read.
+- **Administrative Mutating**: Writing, modifying, or deleting entries is strictly gated using `allow write: if isAuthenticated();`, ensuring that only verified administrators can alter the live catalog.
+
+### 4. Interactive Database Seeding (`src/app/admin/page.tsx`)
+- The admin dashboard features a live **"Connection Status"** badge indicating whether the app is running in *Connected to Firestore* or *LocalStorage Fallback* mode.
+- If connected, administrators can click the **"Seed Firestore DB"** button to bulk-upload all initial mock datasets (opportunities, events, blogs, resources, team) to Firestore in a single click, instantly initializing the platform.
+
+---
 
 ---
 

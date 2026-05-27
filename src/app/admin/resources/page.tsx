@@ -12,7 +12,7 @@ import {
   HiOutlineBookOpen,
   HiOutlineLink,
 } from 'react-icons/hi2';
-import { mockResources } from '@/data/mock';
+import { fetchCollection, addDocument, updateDocument, deleteDocument } from '@/lib/firestore';
 import type { Resource, ResourceCategory } from '@/types';
 
 const categories: ResourceCategory[] = [
@@ -46,26 +46,19 @@ export default function AdminResourcesPage() {
   const [type, setType] = useState<'pdf' | 'link' | 'repo' | 'video'>('link');
   const [icon, setIcon] = useState('📖');
 
-  // Load from localStorage or mock data
-  useEffect(() => {
-    const saved = localStorage.getItem('sh_resources');
-    if (saved) {
-      try {
-        setResources(JSON.parse(saved));
-      } catch (e) {
-        setResources(mockResources);
-      }
-    } else {
-      setResources(mockResources);
-      localStorage.setItem('sh_resources', JSON.stringify(mockResources));
+  const loadResources = async () => {
+    try {
+      const data = await fetchCollection<Resource>('resources');
+      setResources(data);
+    } catch (e) {
+      console.error('Failed to load resources:', e);
     }
-  }, []);
-
-  const saveResources = (updated: Resource[]) => {
-    setResources(updated);
-    localStorage.setItem('sh_resources', JSON.stringify(updated));
-    window.dispatchEvent(new Event('storage'));
   };
+
+  // Load from database
+  useEffect(() => {
+    loadResources();
+  }, []);
 
   // Filter logic
   const filteredResources = resources.filter((r) => {
@@ -98,7 +91,7 @@ export default function AdminResourcesPage() {
     setIsFormOpen(true);
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!title.trim() || !description.trim() || !link.trim()) {
@@ -118,36 +111,23 @@ export default function AdminResourcesPage() {
       else finalIcon = '📖';
     }
 
+    const payload = {
+      title,
+      category,
+      description,
+      link,
+      type,
+      icon: finalIcon,
+    };
+
     if (editingResource) {
       // Edit
-      const updated = resources.map((r) =>
-        r.id === editingResource.id
-          ? {
-              ...r,
-              title,
-              category,
-              description,
-              link,
-              type,
-              icon: finalIcon,
-            }
-          : r
-      );
-      saveResources(updated);
+      await updateDocument('resources', editingResource.id, payload);
     } else {
       // Add
-      const newResource: Resource = {
-        id: `res_${Date.now()}`,
-        title,
-        category,
-        description,
-        link,
-        type,
-        icon: finalIcon,
-        createdAt: new Date().toISOString(),
-      };
-      saveResources([newResource, ...resources]);
+      await addDocument('resources', payload);
     }
+    await loadResources();
     setIsFormOpen(false);
   };
 
@@ -156,10 +136,10 @@ export default function AdminResourcesPage() {
     setIsDeleteOpen(true);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (deletingResource) {
-      const updated = resources.filter((r) => r.id !== deletingResource.id);
-      saveResources(updated);
+      await deleteDocument('resources', deletingResource.id);
+      await loadResources();
       setIsDeleteOpen(false);
       setDeletingResource(null);
     }

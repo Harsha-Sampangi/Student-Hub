@@ -14,6 +14,7 @@ import {
   signOut as firebaseSignOut,
   onAuthChange,
 } from '@/lib/auth';
+import { isFirebaseConfigured } from '@/lib/firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -42,6 +43,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // 1. Check local mock user first
     const savedUser = localStorage.getItem('sh_mock_user');
     if (savedUser) {
       try {
@@ -51,14 +53,39 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       } catch (e) {}
     }
 
-    const unsubscribe = onAuthChange((firebaseUser) => {
-      setUser(firebaseUser);
+    // 2. Listen to Firebase auth changes if configured
+    if (isFirebaseConfigured()) {
+      const unsubscribe = onAuthChange((firebaseUser) => {
+        // If there is a firebase user, use it; otherwise preserve local mock user if active
+        if (firebaseUser) {
+          setUser(firebaseUser);
+        } else if (!localStorage.getItem('sh_mock_user')) {
+          setUser(null);
+        }
+        setLoading(false);
+      });
+      return () => unsubscribe();
+    } else {
       setLoading(false);
-    });
-    return () => unsubscribe();
+    }
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
+    // 1. Try Firebase Auth first if configured
+    if (isFirebaseConfigured()) {
+      try {
+        await firebaseSignIn(email, password);
+        // Remove mock user session on successful Firebase sign-in
+        localStorage.removeItem('sh_mock_user');
+        return;
+      } catch (error: any) {
+        console.warn('Firebase Auth sign-in failed, trying local fallback:', error.message);
+        // If the error indicates invalid password/email but configuration exists, let it fall through
+        // to check if it's the fallback admin account.
+      }
+    }
+
+    // 2. Local Fallback credentials check
     if (email === 'admin@studenthub.in' && password === 'StudentHub@2026') {
       const mockUser = {
         email: 'admin@studenthub.in',
@@ -69,15 +96,18 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       setUser(mockUser as any);
       return;
     }
-    await firebaseSignIn(email, password);
+
+    throw new Error('Invalid email or password.');
   }, []);
 
   const signOut = useCallback(async () => {
     localStorage.removeItem('sh_mock_user');
     setUser(null);
-    try {
-      await firebaseSignOut();
-    } catch (e) {}
+    if (isFirebaseConfigured()) {
+      try {
+        await firebaseSignOut();
+      } catch (e) {}
+    }
   }, []);
 
   return (

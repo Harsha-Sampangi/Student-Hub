@@ -19,15 +19,6 @@ const platforms = [
     shadow: 'shadow-green-500/25',
     hoverBg: 'hover:bg-green-50 dark:hover:bg-green-950/30',
   },
-    {
-    name: 'Instagram',
-    description: 'Follow us for daily updates',
-    icon: FaInstagram,
-    url: 'https://instagram.com/studenthub',
-    gradient: 'from-pink-400 via-purple-500 to-orange-400',
-    shadow: 'shadow-pink-500/25',
-    hoverBg: 'hover:bg-pink-50 dark:hover:bg-pink-950/30',
-  },
   {
     name: 'LinkedIn',
     description: 'Connect professionally',
@@ -36,6 +27,15 @@ const platforms = [
     gradient: 'from-blue-500 to-blue-700',
     shadow: 'shadow-blue-500/25',
     hoverBg: 'hover:bg-blue-50 dark:hover:bg-blue-950/30',
+  },
+  {
+    name: 'Instagram',
+    description: 'Follow us for daily updates',
+    icon: FaInstagram,
+    url: 'https://instagram.com/,
+    gradient: 'from-pink-400 via-purple-500 to-orange-400',
+    shadow: 'shadow-pink-500/25',
+    hoverBg: 'hover:bg-pink-50 dark:hover:bg-pink-950/30',
   },
   {
     name: 'Discord',

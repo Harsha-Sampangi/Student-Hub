@@ -19,16 +19,7 @@ const platforms = [
     shadow: 'shadow-green-500/25',
     hoverBg: 'hover:bg-green-50 dark:hover:bg-green-950/30',
   },
-  {
-    name: 'Discord',
-    description: 'Chat, collaborate, and grow together',
-    icon: FaDiscord,
-    url: 'https://discord.gg/studenthub',
-    gradient: 'from-indigo-400 to-indigo-600',
-    shadow: 'shadow-indigo-500/25',
-    hoverBg: 'hover:bg-indigo-50 dark:hover:bg-indigo-950/30',
-  },
-  {
+    {
     name: 'Instagram',
     description: 'Follow us for daily updates',
     icon: FaInstagram,
@@ -45,6 +36,15 @@ const platforms = [
     gradient: 'from-blue-500 to-blue-700',
     shadow: 'shadow-blue-500/25',
     hoverBg: 'hover:bg-blue-50 dark:hover:bg-blue-950/30',
+  },
+  {
+    name: 'Discord',
+    description: 'Chat, collaborate, and grow together',
+    icon: FaDiscord,
+    url: 'https://discord.gg/studenthub',
+    gradient: 'from-indigo-400 to-indigo-600',
+    shadow: 'shadow-indigo-500/25',
+    hoverBg: 'hover:bg-indigo-50 dark:hover:bg-indigo-950/30',
   },
 ];
 

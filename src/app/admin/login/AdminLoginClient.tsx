@@ -59,11 +59,11 @@ export default function AdminLoginClient() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-brand-teal/10 via-surface to-brand-blue/10">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-admin-background">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          className="h-10 w-10 rounded-full border-3 border-brand-teal/20 border-t-brand-teal"
+          className="h-10 w-10 rounded-full border-3 border-admin-brand/20 border-t-admin-brand"
         />
       </div>
     );
@@ -72,58 +72,57 @@ export default function AdminLoginClient() {
   if (user) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden">
-      {/* Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-brand-teal-dark via-[#0d2b3e] to-brand-blue-dark" />
-
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-admin-background overflow-hidden font-sans">
       {/* Decorative Orbs */}
-      <div className="absolute top-1/4 -left-20 h-80 w-80 rounded-full bg-brand-teal/20 blur-[100px]" />
-      <div className="absolute -right-20 bottom-1/4 h-80 w-80 rounded-full bg-brand-blue/20 blur-[100px]" />
-      <div className="absolute top-1/2 left-1/2 h-60 w-60 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-amber/10 blur-[80px]" />
-
+      <div className="absolute top-0 -left-20 h-[500px] w-[500px] rounded-full bg-admin-brand/5 blur-[120px] pointer-events-none" />
+      <div className="absolute -bottom-40 -right-20 h-[600px] w-[600px] rounded-full bg-admin-brand/5 blur-[120px] pointer-events-none" />
+      
       {/* Grid Pattern */}
       <div
-        className="absolute inset-0 opacity-[0.03]"
+        className="absolute inset-0 opacity-20 pointer-events-none"
         style={{
           backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-          backgroundSize: '60px 60px',
+            'linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px)',
+          backgroundSize: '40px 40px',
         }}
       />
 
       {/* Login Card */}
       <motion.div
-        initial={{ opacity: 0, y: 30, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 w-full max-w-md mx-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-10 w-full max-w-[420px] mx-4"
       >
-        <div className="rounded-3xl border border-white/10 bg-white/[0.07] p-8 sm:p-10 shadow-elevated backdrop-blur-2xl">
+        <div className="rounded-[24px] border border-admin-border/50 bg-admin-surface p-8 sm:p-10 shadow-admin-lg relative overflow-hidden">
+          {/* Top highlight line */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-admin-brand/20 via-admin-brand to-admin-brand/20 opacity-80" />
+
           {/* Branding */}
-          <div className="mb-8 text-center">
+          <div className="mb-8 text-center flex flex-col items-center">
             <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.5, ease: 'easeOut' }}
-              className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-teal to-brand-blue shadow-lg"
+              transition={{ delay: 0.1, duration: 0.4 }}
+              className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-admin-brand/10 border border-admin-brand/20 text-admin-brand"
             >
-              <HiOutlineAcademicCap className="h-9 w-9 text-white" />
+              <HiOutlineAcademicCap className="h-7 w-7" />
             </motion.div>
             <motion.h1
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-              className="text-2xl font-bold text-white font-display"
+              transition={{ delay: 0.2, duration: 0.4 }}
+              className="text-2xl font-bold text-admin-text-primary font-display tracking-tight"
             >
-              Student Hub
+              Welcome Back
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
-              className="mt-2 text-sm text-white/50"
+              transition={{ delay: 0.3, duration: 0.4 }}
+              className="mt-2 text-sm text-admin-text-tertiary"
             >
-              Admin Panel — Sign in to continue
+              Sign in to the Student Hub Admin Portal
             </motion.p>
           </div>
 
@@ -132,13 +131,13 @@ export default function AdminLoginClient() {
             {error && (
               <motion.div
                 initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
+                animate={{ opacity: 1, height: 'auto', marginBottom: 20 }}
                 exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+                className="flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600"
                 role="alert"
               >
                 <HiOutlineExclamationTriangle className="h-5 w-5 shrink-0" />
-                <span>{error}</span>
+                <span className="font-medium">{error}</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -148,19 +147,19 @@ export default function AdminLoginClient() {
             <div>
               <label
                 htmlFor="email"
-                className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/40"
+                className="mb-1.5 block text-[13px] font-medium text-admin-text-secondary"
               >
-                Email
+                Email Address
               </label>
-              <div className="relative">
-                <HiOutlineEnvelope className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/30" />
+              <div className="relative group">
+                <HiOutlineEnvelope className="absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-admin-text-tertiary group-focus-within:text-admin-brand transition-colors" />
                 <input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@studenthub.in"
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.06] py-3.5 pl-12 pr-4 text-sm text-white placeholder:text-white/25 transition-all duration-200 focus:border-brand-teal/50 focus:bg-white/[0.1] focus:outline-none focus:ring-2 focus:ring-brand-teal/20"
+                  className="w-full rounded-xl border border-admin-border bg-admin-surface-container py-2.5 pl-10 pr-4 text-[14px] text-admin-text-primary placeholder:text-admin-text-tertiary transition-all duration-200 focus:border-admin-brand focus:bg-admin-surface focus:outline-none focus:ring-4 focus:ring-admin-brand/10"
                   aria-label="Email address"
                   autoComplete="email"
                 />
@@ -170,19 +169,19 @@ export default function AdminLoginClient() {
             <div>
               <label
                 htmlFor="password"
-                className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/40"
+                className="mb-1.5 block text-[13px] font-medium text-admin-text-secondary"
               >
                 Password
               </label>
-              <div className="relative">
-                <HiOutlineLockClosed className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/30" />
+              <div className="relative group">
+                <HiOutlineLockClosed className="absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-admin-text-tertiary group-focus-within:text-admin-brand transition-colors" />
                 <input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.06] py-3.5 pl-12 pr-4 text-sm text-white placeholder:text-white/25 transition-all duration-200 focus:border-brand-teal/50 focus:bg-white/[0.1] focus:outline-none focus:ring-2 focus:ring-brand-teal/20"
+                  className="w-full rounded-xl border border-admin-border bg-admin-surface-container py-2.5 pl-10 pr-4 text-[14px] text-admin-text-primary placeholder:text-admin-text-tertiary transition-all duration-200 focus:border-admin-brand focus:bg-admin-surface focus:outline-none focus:ring-4 focus:ring-admin-brand/10"
                   aria-label="Password"
                   autoComplete="current-password"
                 />
@@ -192,9 +191,9 @@ export default function AdminLoginClient() {
             <motion.button
               type="submit"
               disabled={isSubmitting}
-              whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
+              whileHover={{ scale: isSubmitting ? 1 : 1.01 }}
               whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-              className="w-full rounded-xl bg-gradient-to-r from-brand-teal to-brand-blue py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-teal/20 transition-all duration-200 hover:shadow-xl hover:shadow-brand-teal/30 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-xl bg-admin-text-primary py-3 text-[14px] font-medium text-admin-surface shadow-sm transition-all duration-200 hover:bg-admin-text-primary/90 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
               aria-label="Sign in"
             >
               {isSubmitting ? (
@@ -206,9 +205,9 @@ export default function AdminLoginClient() {
                       repeat: Infinity,
                       ease: 'linear',
                     }}
-                    className="inline-block h-4 w-4 rounded-full border-2 border-white/30 border-t-white"
+                    className="inline-block h-4 w-4 rounded-full border-2 border-admin-surface/30 border-t-admin-surface"
                   />
-                  Signing in…
+                  Signing in...
                 </span>
               ) : (
                 'Sign In'
@@ -216,8 +215,8 @@ export default function AdminLoginClient() {
             </motion.button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-white/25">
-            Protected area — Authorized personnel only
+          <p className="mt-8 text-center text-[12px] text-admin-text-tertiary">
+            Protected system. Authorized access only.
           </p>
         </div>
       </motion.div>

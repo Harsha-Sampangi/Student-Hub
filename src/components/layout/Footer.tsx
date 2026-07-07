@@ -42,6 +42,7 @@ export default function Footer() {
                 width={40}
                 height={40}
                 className="rounded-lg"
+                style={{ width: 'auto', height: 'auto' }}
               />
               <span className="font-display text-lg font-bold tracking-tight">
                 Student<span className="text-brand-teal">Hub</span>

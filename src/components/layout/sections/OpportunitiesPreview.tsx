@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { fetchCollection } from '@/lib/firestore';
 import type { OpportunityCategory, Opportunity } from '@/types';
+import SkeletonCard from '../../ui/SkeletonCard';
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
@@ -47,6 +48,7 @@ function formatDate(dateStr: string): string {
 
 export default function OpportunitiesPreview() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadOpportunities = async () => {
@@ -55,6 +57,8 @@ export default function OpportunitiesPreview() {
         setOpportunities(data.filter((opp) => opp.isActive).slice(0, 4));
       } catch (e) {
         console.error('Failed to load opportunities preview:', e);
+      } finally {
+        setLoading(false);
       }
     };
     loadOpportunities();
@@ -104,13 +108,20 @@ export default function OpportunitiesPreview() {
           variants={staggerContainer}
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
         >
-          {opportunities.map((opp) => (
-            <motion.div
-              key={opp.id}
-              variants={fadeInUp}
-              whileHover={{ y: -6, transition: { duration: 0.3 } }}
-              className="glass-card rounded-2xl p-6 flex flex-col group"
-            >
+          {loading ? (
+            [...Array(4)].map((_, i) => (
+              <motion.div key={`skeleton-${i}`} variants={fadeInUp}>
+                <SkeletonCard />
+              </motion.div>
+            ))
+          ) : (
+            opportunities.map((opp) => (
+              <motion.div
+                key={opp.id}
+                variants={fadeInUp}
+                whileHover={{ y: -6, transition: { type: 'spring', stiffness: 300, damping: 20 } }}
+                className="glass-card rounded-2xl p-6 flex flex-col group"
+              >
               {/* Category + Mode */}
               <div className="flex items-center justify-between mb-4 gap-2">
                 <span
@@ -201,7 +212,7 @@ export default function OpportunitiesPreview() {
                 </a>
               </div>
             </motion.div>
-          ))}
+          )))}
         </motion.div>
 
         {/* View All Link */}

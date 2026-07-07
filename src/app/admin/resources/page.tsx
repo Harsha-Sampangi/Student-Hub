@@ -1,490 +1,332 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  HiOutlineMagnifyingGlass,
-  HiOutlinePlus,
-  HiOutlinePencilSquare,
-  HiOutlineTrash,
-  HiOutlineXMark,
-  HiOutlineExclamationTriangle,
-  HiOutlineBookOpen,
-  HiOutlineLink,
-} from 'react-icons/hi2';
+import { Search, Plus, Edit, Trash2, Copy, Filter, ArrowUpDown } from 'lucide-react';
 import { fetchCollection, addDocument, updateDocument, deleteDocument } from '@/lib/firestore';
 import type { Resource, ResourceCategory } from '@/types';
 
-const categories: ResourceCategory[] = [
+import { AdminTable, Column } from '@/components/admin/AdminTable';
+import { AdminEmptyState } from '@/components/admin/AdminEmptyState';
+import { AdminButton } from '@/components/admin/AdminButton';
+import { AdminModal } from '@/components/admin/AdminModal';
+import { AdminInput } from '@/components/admin/AdminInput';
+import { AdminSelect } from '@/components/admin/AdminSelect';
+import { AdminBadge } from '@/components/admin/AdminBadge';
+import { AdminActionMenu } from '@/components/admin/AdminActionMenu';
+
+const CATEGORIES: ResourceCategory[] = [
   'Roadmaps',
   'PDFs',
   'Learning',
   'GitHub Repos',
   'Career Prep',
-  'Tools',
+  'Tools'
 ];
-
-const types = ['pdf', 'link', 'repo', 'video'] as const;
 
 export default function AdminResourcesPage() {
   const [resources, setResources] = useState<Resource[]>([]);
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('All');
-  const [typeFilter, setTypeFilter] = useState<string>('All');
+  const [loading, setLoading] = useState(true);
+  
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<Resource | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Filter State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
 
-  // Modal states
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [editingResource, setEditingResource] = useState<Resource | null>(null);
-  const [deletingResource, setDeletingResource] = useState<Resource | null>(null);
+  // Form State
+  const [formData, setFormData] = useState<Partial<Resource>>({
+    title: '',
+    category: 'Learning',
+    description: '',
+    link: '',
+    type: 'link',
+    icon: '',
+  });
 
-  // Form states
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<ResourceCategory>('Learning');
-  const [description, setDescription] = useState('');
-  const [link, setLink] = useState('');
-  const [type, setType] = useState<'pdf' | 'link' | 'repo' | 'video'>('link');
-  const [icon, setIcon] = useState('📖');
-
-  const loadResources = async () => {
+  const loadData = async () => {
+    setLoading(true);
     try {
       const data = await fetchCollection<Resource>('resources');
       setResources(data);
     } catch (e) {
-      console.error('Failed to load resources:', e);
+      console.error(e);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Load from database
   useEffect(() => {
-    loadResources();
+    loadData();
   }, []);
 
-  // Filter logic
-  const filteredResources = resources.filter((r) => {
-    const matchesSearch = r.title.toLowerCase().includes(search.toLowerCase()) || 
-                          r.description.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = categoryFilter === 'All' || r.category === categoryFilter;
-    const matchesType = typeFilter === 'All' || r.type === typeFilter;
-    return matchesSearch && matchesCategory && matchesType;
+  const handleOpenModal = (item?: Resource) => {
+    if (item) {
+      setEditingItem(item);
+      setFormData(item);
+    } else {
+      setEditingItem(null);
+      setFormData({
+        title: '',
+        category: 'Learning',
+        description: '',
+        link: '',
+        type: 'link',
+        icon: '',
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleDuplicate = (item: Resource) => {
+    setEditingItem(null);
+    setFormData({
+      ...item,
+      title: `${item.title} (Copy)`,
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this resource?')) return;
+    try {
+      await deleteDocument('resources', id);
+      setResources(prev => prev.filter(r => r.id !== id));
+    } catch (e) {
+      console.error(e);
+      alert('Failed to delete item.');
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      if (editingItem?.id) {
+        await updateDocument('resources', editingItem.id, formData);
+      } else {
+        await addDocument('resources', formData);
+      }
+      await loadData();
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error(error);
+      alert('Failed to save resource.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Filtering & Sorting
+  let filteredData = resources.filter(r => {
+    const matchesSearch = r.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === 'all' || r.category === categoryFilter;
+    return matchesSearch && matchesCategory;
   });
 
-  const openAddModal = () => {
-    setEditingResource(null);
-    setTitle('');
-    setCategory('Learning');
-    setDescription('');
-    setLink('');
-    setType('link');
-    setIcon('📖');
-    setIsFormOpen(true);
-  };
+  if (sortBy === 'newest') {
+    filteredData.sort((a, b) => new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime());
+  } else if (sortBy === 'oldest') {
+    filteredData.sort((a, b) => new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime());
+  } else if (sortBy === 'a-z') {
+    filteredData.sort((a, b) => a.title.localeCompare(b.title));
+  }
 
-  const openEditModal = (res: Resource) => {
-    setEditingResource(res);
-    setTitle(res.title);
-    setCategory(res.category);
-    setDescription(res.description);
-    setLink(res.link);
-    setType(res.type);
-    setIcon(res.icon || '📖');
-    setIsFormOpen(true);
-  };
-
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!title.trim() || !description.trim() || !link.trim()) {
-      alert('Please fill out all fields.');
-      return;
-    }
-
-    // Assign appropriate emoji icon based on type/category if not edited
-    let finalIcon = icon;
-    if (finalIcon === '📖' || !finalIcon) {
-      if (type === 'repo') finalIcon = '💻';
-      else if (type === 'pdf') finalIcon = '📄';
-      else if (type === 'video') finalIcon = '🎥';
-      else if (category === 'Roadmaps') finalIcon = '🗺️';
-      else if (category === 'Career Prep') finalIcon = '🎯';
-      else if (category === 'Tools') finalIcon = '🔧';
-      else finalIcon = '📖';
-    }
-
-    const payload = {
-      title,
-      category,
-      description,
-      link,
-      type,
-      icon: finalIcon,
-    };
-
-    if (editingResource) {
-      // Edit
-      await updateDocument('resources', editingResource.id, payload);
-    } else {
-      // Add
-      await addDocument('resources', payload);
-    }
-    await loadResources();
-    setIsFormOpen(false);
-  };
-
-  const openDeleteModal = (res: Resource) => {
-    setDeletingResource(res);
-    setIsDeleteOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (deletingResource) {
-      await deleteDocument('resources', deletingResource.id);
-      await loadResources();
-      setIsDeleteOpen(false);
-      setDeletingResource(null);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+  const columns: Column<Resource>[] = [
+    {
+      header: 'Resource',
+      accessor: (item) => (
         <div>
-          <h2 className="text-2xl font-bold text-text-primary font-display sm:text-3xl">
-            Resources
-          </h2>
-          <p className="mt-1 text-sm text-text-tertiary">
-            Manage learning links, PDF guides, GitHub repos, and career resources.
-          </p>
+          <p className="font-semibold text-admin-text-primary">{item.title}</p>
+          <p className="text-xs text-admin-text-secondary mt-0.5"><span className="uppercase tracking-wider">{item.type}</span></p>
         </div>
-        <button
-          onClick={openAddModal}
-          className="flex items-center justify-center gap-2 rounded-xl bg-purple-600 hover:bg-purple-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-600/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-        >
-          <HiOutlinePlus className="h-5 w-5" />
-          Add Resource
-        </button>
-      </div>
-
-      {/* Filters & Search */}
-      <div className="glass-card rounded-2xl p-4 flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <HiOutlineMagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-text-tertiary" />
-          <input
-            type="text"
-            placeholder="Search resources..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-border bg-surface-container py-2.5 pl-10 pr-4 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all"
+      ),
+    },
+    {
+      header: 'Category',
+      accessor: (item) => <AdminBadge category={item.category} />,
+    },
+    {
+      header: 'Date Added',
+      accessor: (item) => (
+        <span className="text-admin-text-tertiary text-[13px]">
+          {item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-IN', {
+            day: 'numeric', month: 'short', year: 'numeric'
+          }) : 'N/A'}
+        </span>
+      ),
+    },
+    {
+      header: '',
+      className: 'text-right',
+      accessor: (item) => (
+        <div className="flex justify-end gap-3 items-center">
+          <AdminActionMenu 
+            items={[
+              { label: 'Edit', icon: Edit, onClick: () => handleOpenModal(item) },
+              { label: 'Duplicate', icon: Copy, onClick: () => handleDuplicate(item) },
+              { label: 'Delete', icon: Trash2, onClick: () => handleDelete(item.id!), variant: 'danger' },
+            ]}
           />
         </div>
-        <div className="flex flex-wrap gap-3">
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="rounded-xl border border-border bg-surface-container px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-purple-500/30"
-          >
-            <option value="All">All Categories</option>
-            {categories.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="rounded-xl border border-border bg-surface-container px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-purple-500/30"
-          >
-            <option value="All">All Types</option>
-            {types.map((t) => (
-              <option key={t} value={t}>
-                {t.toUpperCase()}
-              </option>
-            ))}
-          </select>
+      ),
+    },
+  ];
+
+  return (
+    <div className="flex flex-col h-full space-y-4">
+      {/* Toolbar */}
+      <div className="flex flex-col lg:flex-row gap-3 items-end lg:items-center justify-between bg-admin-surface p-3 rounded-admin-lg border border-admin-border/50 shadow-admin-sm shrink-0">
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+          <div className="relative min-w-[240px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-admin-text-tertiary" />
+            <input
+              type="text"
+              placeholder="Search resources..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full rounded-lg border border-admin-border/50 bg-admin-surface-container py-2 pl-9 pr-4 text-sm text-admin-text-primary placeholder:text-admin-text-tertiary focus:border-admin-brand focus:outline-none focus:ring-1 focus:ring-admin-brand transition-all"
+            />
+          </div>
+          <div className="flex gap-2">
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-admin-text-tertiary pointer-events-none" />
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="pl-9 pr-8 py-2 rounded-lg border border-admin-border/50 bg-admin-surface-container text-sm text-admin-text-primary appearance-none focus:border-admin-brand focus:outline-none focus:ring-1 focus:ring-admin-brand transition-all min-w-[140px]"
+              >
+                <option value="all">All Categories</option>
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="relative">
+              <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-admin-text-tertiary pointer-events-none" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="pl-9 pr-8 py-2 rounded-lg border border-admin-border/50 bg-admin-surface-container text-sm text-admin-text-primary appearance-none focus:border-admin-brand focus:outline-none focus:ring-1 focus:ring-admin-brand transition-all min-w-[130px]"
+              >
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="a-z">A-Z</option>
+              </select>
+            </div>
+          </div>
         </div>
+        <AdminButton
+          variant="primary"
+          icon={<Plus className="h-4 w-4" />}
+          onClick={() => handleOpenModal()}
+          className="shrink-0 w-full sm:w-auto"
+        >
+          Add Resource
+        </AdminButton>
       </div>
 
-      {/* Table / Cards */}
-      <div className="glass-card rounded-2xl overflow-hidden border border-border">
-        {filteredResources.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-border bg-surface-container/50 text-xs font-semibold uppercase tracking-wider text-text-tertiary">
-                  <th className="px-6 py-4">Title</th>
-                  <th className="px-6 py-4">Category</th>
-                  <th className="px-6 py-4">Type</th>
-                  <th className="px-6 py-4">Link</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border text-sm text-text-secondary">
-                {filteredResources.map((res) => (
-                  <tr
-                    key={res.id}
-                    className="hover:bg-surface-container/30 transition-colors"
-                  >
-                    <td className="px-6 py-4 flex items-center gap-3">
-                      <span className="text-2xl" role="img" aria-label="icon">
-                        {res.icon || '📖'}
-                      </span>
-                      <div>
-                        <div className="font-semibold text-text-primary">{res.title}</div>
-                        <div className="text-xs text-text-tertiary max-w-sm truncate">
-                          {res.description}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex rounded-lg bg-purple-500/10 px-2.5 py-1 text-xs font-semibold text-purple-600 dark:text-purple-400">
-                        {res.category}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 uppercase font-medium text-xs text-text-tertiary">
-                      {res.type}
-                    </td>
-                    <td className="px-6 py-4">
-                      <a
-                        href={res.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs font-medium text-brand-teal hover:underline"
-                      >
-                        <HiOutlineLink className="h-3.5 w-3.5" />
-                        Visit Link
-                      </a>
-                    </td>
-                    <td className="px-6 py-4 text-right space-x-2">
-                      <button
-                        onClick={() => openEditModal(res)}
-                        className="rounded-lg p-1.5 text-text-tertiary hover:bg-surface-container hover:text-text-primary transition-colors"
-                        title="Edit Resource"
-                      >
-                        <HiOutlinePencilSquare className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => openDeleteModal(res)}
-                        className="rounded-lg p-1.5 text-text-tertiary hover:bg-red-500/10 hover:text-red-500 transition-colors"
-                        title="Delete Resource"
-                      >
-                        <HiOutlineTrash className="h-5 w-5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* Main Table Area */}
+      <div className="flex-1 min-h-0">
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center py-12">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-admin-brand/20 border-t-admin-brand" />
           </div>
         ) : (
-          <div className="p-12 text-center">
-            <p className="text-text-secondary font-medium">No resources match the criteria.</p>
-          </div>
+          <AdminTable
+            data={filteredData}
+            columns={columns}
+            keyExtractor={(item) => item.id!}
+            onRowClick={(item) => handleOpenModal(item)}
+            emptyState={
+              <AdminEmptyState
+                icon={<Search className="h-8 w-8 text-admin-text-tertiary" />}
+                title="No resources found"
+                description="Try adjusting your search or filters."
+              />
+            }
+          />
         )}
       </div>
 
-      {/* Add / Edit Form Modal */}
-      <AnimatePresence>
-        {isFormOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsFormOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+      {/* Editor Modal */}
+      <AdminModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingItem ? 'Edit Resource' : 'Create Resource'}
+        size="lg"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4">
+            <AdminInput
+              label="Title"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              required
             />
-            <motion.div
-              initial={{ scale: 0.95, y: 15, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.95, y: 15, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="relative z-10 w-full max-w-2xl overflow-hidden rounded-3xl border border-border bg-surface p-6 shadow-xl max-h-[90vh] flex flex-col"
-            >
-              {/* Modal Header */}
-              <div className="flex items-center justify-between pb-4 border-b border-border">
-                <h3 className="font-display text-xl font-bold text-text-primary">
-                  {editingResource ? 'Edit Resource' : 'Add Resource'}
-                </h3>
-                <button
-                  onClick={() => setIsFormOpen(false)}
-                  className="rounded-lg p-1 text-text-tertiary hover:bg-surface-container"
-                >
-                  <HiOutlineXMark className="h-6 w-6" />
-                </button>
-              </div>
-
-              {/* Form Scroll Container */}
-              <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto space-y-4 py-4 pr-1">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-1.5">
-                      Resource Title
-                    </label>
-                    <input
-                      type="text"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="e.g. Master Git & GitHub Roadmap"
-                      className="w-full rounded-xl border border-border bg-surface-container px-3.5 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-1.5">
-                      Category
-                    </label>
-                    <select
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value as ResourceCategory)}
-                      className="w-full rounded-xl border border-border bg-surface-container px-3.5 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-purple-500/30"
-                    >
-                      {categories.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-1.5">
-                      Type
-                    </label>
-                    <select
-                      value={type}
-                      onChange={(e) => setType(e.target.value as any)}
-                      className="w-full rounded-xl border border-border bg-surface-container px-3.5 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-purple-500/30"
-                    >
-                      {types.map((t) => (
-                        <option key={t} value={t}>
-                          {t.toUpperCase()}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-1.5">
-                      Resource Link (URL)
-                    </label>
-                    <input
-                      type="url"
-                      value={link}
-                      onChange={(e) => setLink(e.target.value)}
-                      placeholder="https://github.com/... or https://youtube.com/..."
-                      className="w-full rounded-xl border border-border bg-surface-container px-3.5 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-purple-500/30"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-1.5">
-                      Display Emoji/Icon
-                    </label>
-                    <input
-                      type="text"
-                      value={icon}
-                      onChange={(e) => setIcon(e.target.value)}
-                      placeholder="📖"
-                      className="w-full rounded-xl border border-border bg-surface-container px-3.5 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-purple-500/30 text-center"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <p className="text-xs text-text-tertiary mt-8">
-                      Provide a single emoji to display alongside the resource title.
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-1.5">
-                    Description
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Briefly describe what this resource covers and who it is for..."
-                    className="w-full rounded-xl border border-border bg-surface-container px-3.5 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 resize-none"
-                    required
-                  />
-                </div>
-
-                {/* Modal Footer */}
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
-                  <button
-                    type="button"
-                    onClick={() => setIsFormOpen(false)}
-                    className="rounded-xl border border-border px-5 py-2.5 text-sm font-semibold text-text-secondary hover:bg-surface-container transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="rounded-xl bg-purple-600 hover:bg-purple-700 px-5 py-2.5 text-sm font-semibold text-white transition-all shadow-md shadow-purple-600/20"
-                  >
-                    {editingResource ? 'Save Changes' : 'Create Resource'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
           </div>
-        )}
-      </AnimatePresence>
 
-      {/* Delete Confirmation Modal */}
-      <AnimatePresence>
-        {isDeleteOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsDeleteOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <AdminSelect
+              label="Category"
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
+              options={CATEGORIES.map(c => ({ label: c, value: c }))}
             />
-            <motion.div
-              initial={{ scale: 0.95, y: 15, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.95, y: 15, opacity: 0 }}
-              className="relative z-10 w-full max-w-md overflow-hidden rounded-3xl border border-border bg-surface p-6 shadow-xl"
-            >
-              <div className="flex items-start gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/10 text-red-500">
-                  <HiOutlineExclamationTriangle className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-display text-lg font-bold text-text-primary">
-                    Delete Resource
-                  </h3>
-                  <p className="mt-2 text-sm text-text-secondary">
-                    Are you sure you want to delete <span className="font-semibold text-text-primary">&ldquo;{deletingResource?.title}&rdquo;</span>? This action cannot be undone.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-6 flex items-center justify-end gap-3">
-                <button
-                  onClick={() => setIsDeleteOpen(false)}
-                  className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-text-secondary hover:bg-surface-container"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDeleteConfirm}
-                  className="rounded-xl bg-red-500 hover:bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-red-500/15"
-                >
-                  Delete
-                </button>
-              </div>
-            </motion.div>
+            <AdminSelect
+              label="Type"
+              value={formData.type}
+              onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+              options={[
+                { label: 'PDF', value: 'pdf' },
+                { label: 'Link', value: 'link' },
+                { label: 'GitHub Repo', value: 'repo' },
+                { label: 'Video', value: 'video' },
+              ]}
+            />
           </div>
-        )}
-      </AnimatePresence>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <AdminInput
+              label="Resource Link"
+              type="url"
+              value={formData.link}
+              onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+              placeholder="https://"
+              required
+            />
+            <AdminInput
+              label="Icon Name (Optional)"
+              value={formData.icon || ''}
+              onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+              placeholder="e.g. file-text, link, github"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[13px] font-semibold uppercase tracking-wider text-admin-text-secondary">
+              Description
+            </label>
+            <textarea
+              className="w-full rounded-lg border border-admin-border/50 bg-admin-surface px-4 py-2 text-sm text-admin-text-primary transition-colors focus:border-admin-brand focus:outline-none focus:ring-1 focus:ring-admin-brand min-h-[120px]"
+              rows={4}
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-admin-border/50">
+            <AdminButton type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </AdminButton>
+            <AdminButton type="submit" variant="primary" loading={isSubmitting}>
+              {editingItem ? 'Save Changes' : 'Create Resource'}
+            </AdminButton>
+          </div>
+        </form>
+      </AdminModal>
     </div>
   );
 }

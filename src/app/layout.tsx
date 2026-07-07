@@ -4,6 +4,7 @@ import "./globals.css";
 import ThemeProvider from "@/providers/ThemeProvider";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import CustomCursor from "@/components/ui/CustomCursor";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -67,6 +68,7 @@ export default function RootLayout({
     >
       <body className="min-h-screen flex flex-col bg-surface text-text-primary font-sans">
         <ThemeProvider>
+          <CustomCursor />
           <Navbar />
           <main className="flex-1">{children}</main>
           <Footer />

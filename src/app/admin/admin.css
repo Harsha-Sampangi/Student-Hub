@@ -1,0 +1,90 @@
+/* 
+  Admin-specific styles.
+  This file layers on top of globals.css to provide a premium SaaS look.
+*/
+
+/* 
+  Admin Theme Variables
+*/
+:root {
+  /* Colors */
+  --admin-surface: #ffffff;
+  --admin-surface-container: #fafafa;
+  --admin-border: #f0f0f0; /* Softer border */
+  --admin-text-primary: #111827;
+  --admin-text-secondary: #4b5563;
+  --admin-text-tertiary: #9ca3af;
+  
+  /* Brand */
+  --admin-brand: #0d9488;
+  --admin-brand-hover: #0f766e;
+  --admin-brand-light: #f0fdfa;
+  
+  /* Soft Premium Shadows (Issue 2) */
+  --admin-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --admin-shadow: 0 4px 12px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --admin-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.04), 0 2px 6px rgba(0, 0, 0, 0.03);
+  --admin-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.04);
+  
+  /* Border Radius */
+  --admin-radius-sm: 6px;
+  --admin-radius: 8px;
+  --admin-radius-md: 12px;
+  --admin-radius-lg: 16px;
+  --admin-radius-xl: 20px;
+}
+
+.dark {
+  --admin-surface: #0a0a0a;
+  --admin-surface-container: #141414;
+  --admin-border: #262626; /* Softer dark border */
+  --admin-text-primary: #ededed;
+  --admin-text-secondary: #a3a3a3;
+  --admin-text-tertiary: #737373;
+  
+  --admin-brand: #14b8a6;
+  --admin-brand-hover: #0d9488;
+  --admin-brand-light: rgba(20, 184, 166, 0.1);
+  
+  --admin-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --admin-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --admin-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.5);
+  --admin-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.7), 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+
+/* 
+  Admin Overrides 
+  We namespace under .admin-portal to avoid affecting public pages.
+*/
+
+.admin-portal {
+  background-color: var(--admin-surface-container);
+  color: var(--admin-text-primary);
+  font-family: var(--font-sans);
+}
+
+.admin-portal ::selection {
+  background-color: var(--admin-brand-light);
+  color: var(--admin-brand);
+}
+
+/* Scrollbar styling for admin */
+.admin-portal ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.admin-portal ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.admin-portal ::-webkit-scrollbar-thumb {
+  background-color: var(--admin-border);
+  border-radius: 4px;
+}
+.admin-portal ::-webkit-scrollbar-thumb:hover {
+  background-color: var(--admin-text-tertiary);
+}
+
+/* Remove default focus ring globally in admin, rely on focus-visible */
+.admin-portal *:focus {
+  outline: none;
+}

@@ -73,6 +73,7 @@ export default function Navbar() {
               width={44}
               height={44}
               className="rounded-lg transition-transform duration-300 group-hover:scale-105"
+              style={{ width: 'auto', height: 'auto' }}
               priority
             />
             <span className="font-display text-xl font-bold tracking-tight text-text-primary hidden sm:block">

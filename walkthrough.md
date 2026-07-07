@@ -157,4 +157,17 @@ Below is the sequential visual progression of the test flow, illustrating the da
 ![24. Public Resources Page](public/screenshots/24_public_resources.png)
 <!-- slide -->
 ![25. Dynamic Article Page (Local Fallback)](public/screenshots/25_dynamic_blog_post.png)
-````
+`
+
+---
+
+## 5. Premium UI/UX Enhancements
+
+Following an in-depth UI audit, several high-end interactive improvements were introduced to achieve a truly state-of-the-art "Apple-inspired" aesthetic:
+
+- **Custom Interactive Cursor**: Replaced the native cursor with a dynamic, spring-animated `CustomCursor` component using Framer Motion that smoothly tracks mouse movements on non-touch devices.
+- **Scroll-Driven Parallax Background**: Integrated Framer Motion's `useScroll` and `useTransform` hooks into the `HeroSection` to create vertical parallax scrolling for the ambient gradient orbs.
+- **Magnetic Call-To-Action (CTA)**: The primary "Join Community" button now uses a custom magnetic tracking effect, pulling slightly towards the user's cursor on hover.
+- **Refined Glassmorphism & Textures**: Upgraded the `.glass-card` styling in `globals.css` with directional inner shadows to mimic edge-lighting and introduced a subtle SVG-based noise/grain texture (`feTurbulence`) for realistic frosted glass.
+- **Dynamic Skeleton Loaders**: Implemented a reusable `<SkeletonCard />` with shimmering animated gradients to replace generic loading spinners during Firebase fetches (e.g., in `OpportunitiesPreview`).
+- **Enhanced Typography & Accessibility**: Softened the dark mode text contrast (`#E2E8F0` body text) to reduce halation, tightened headline tracking (`tracking-tighter`), and added explicit high-contrast `:focus-visible` rings for keyboard navigation.

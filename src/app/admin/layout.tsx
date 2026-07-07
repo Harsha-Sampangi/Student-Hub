@@ -5,31 +5,70 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import AuthProvider, { useAuth } from '@/providers/AuthProvider';
+import { useTheme } from '@/providers/ThemeProvider';
 import {
-  HiOutlineChartBarSquare,
-  HiOutlineRocketLaunch,
-  HiOutlineCalendarDays,
-  HiOutlinePencilSquare,
-  HiOutlineBookOpen,
-  HiOutlineArrowRightOnRectangle,
-  HiOutlineBars3,
-  HiOutlineXMark,
-  HiOutlineAcademicCap,
-} from 'react-icons/hi2';
+  LayoutDashboard,
+  Rocket,
+  Calendar,
+  PenTool,
+  BookOpen,
+  LogOut,
+  Menu,
+  X,
+  GraduationCap,
+  Bell,
+  Search,
+  Moon,
+  Sun,
+  Settings
+} from 'lucide-react';
+import './admin.css';
 
-const sidebarLinks = [
-  { label: 'Dashboard', href: '/admin', icon: HiOutlineChartBarSquare },
-  { label: 'Opportunities', href: '/admin/opportunities', icon: HiOutlineRocketLaunch },
-  { label: 'Events', href: '/admin/events', icon: HiOutlineCalendarDays },
-  { label: 'Blog', href: '/admin/blog', icon: HiOutlinePencilSquare },
-  { label: 'Resources', href: '/admin/resources', icon: HiOutlineBookOpen },
+const sidebarGroups = [
+  {
+    label: 'Dashboard',
+    items: [
+      { label: 'Overview', href: '/admin', icon: LayoutDashboard },
+    ]
+  },
+  {
+    label: 'Content',
+    items: [
+      { label: 'Opportunities', href: '/admin/opportunities', icon: Rocket },
+      { label: 'Events', href: '/admin/events', icon: Calendar },
+      { label: 'Blogs', href: '/admin/blog', icon: PenTool },
+      { label: 'Resources', href: '/admin/resources', icon: BookOpen },
+    ]
+  },
+  {
+    label: 'System',
+    items: [
+      { label: 'Settings', href: '/admin/settings', icon: Settings },
+    ]
+  }
 ];
 
 function AdminShell({ children }: { children: ReactNode }) {
   const { user, loading, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    // Load collapsed state from localStorage
+    const stored = localStorage.getItem('sh_admin_sidebar_collapsed');
+    if (stored) {
+      setSidebarCollapsed(stored === 'true');
+    }
+  }, []);
+
+  const toggleSidebarCollapse = () => {
+    const next = !sidebarCollapsed;
+    setSidebarCollapsed(next);
+    localStorage.setItem('sh_admin_sidebar_collapsed', String(next));
+  };
 
   useEffect(() => {
     if (!loading && !user && pathname !== '/admin/login') {
@@ -37,18 +76,18 @@ function AdminShell({ children }: { children: ReactNode }) {
     }
   }, [user, loading, pathname, router]);
 
-  // Close sidebar on route change
+  // Close mobile sidebar on route change
   useEffect(() => {
     setSidebarOpen(false);
   }, [pathname]);
 
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-admin-surface">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          className="h-10 w-10 rounded-full border-3 border-brand-teal/20 border-t-brand-teal"
+          className="h-10 w-10 rounded-full border-3 border-admin-brand/20 border-t-admin-brand"
         />
       </div>
     );
@@ -66,8 +105,18 @@ function AdminShell({ children }: { children: ReactNode }) {
     return pathname.startsWith(href);
   };
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  const userName = user.email ? user.email.split('@')[0] : 'Admin';
+  const capitalizedName = userName.charAt(0).toUpperCase() + userName.slice(1);
+
   return (
-    <div className="fixed inset-0 z-50 flex bg-surface-dim dark:bg-[#0a0e14]">
+    <div className="admin-portal fixed inset-0 z-50 flex overflow-hidden font-sans">
       {/* Mobile Overlay */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -83,119 +132,198 @@ function AdminShell({ children }: { children: ReactNode }) {
       </AnimatePresence>
 
       {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-surface dark:bg-[#0d1117] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:static lg:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      <motion.aside
+        initial={false}
+        animate={{ width: sidebarCollapsed ? 72 : 260 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-admin-border/50 bg-admin-surface transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:static lg:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64 lg:w-auto'
         }`}
       >
         {/* Sidebar Header */}
-        <div className="flex h-16 items-center gap-3 border-b border-border px-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-teal to-brand-blue">
-            <HiOutlineAcademicCap className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <p className="text-sm font-bold text-text-primary font-display">
-              Student Hub
-            </p>
-            <p className="text-[10px] font-medium uppercase tracking-widest text-text-tertiary">
-              Admin
-            </p>
+        <div className="flex h-[72px] shrink-0 items-center justify-between border-b border-admin-border/50 px-5">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-admin-brand text-white shadow-admin-sm">
+              <GraduationCap className="h-4 w-4" />
+            </div>
+            {!sidebarCollapsed && (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                className="whitespace-nowrap flex flex-col justify-center"
+              >
+                <p className="text-[15px] font-semibold text-admin-text-primary tracking-tight leading-tight">
+                  Student Hub
+                </p>
+                <p className="text-[11px] font-medium text-admin-text-tertiary leading-tight mt-0.5">
+                  Admin Portal
+                </p>
+              </motion.div>
+            )}
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="ml-auto rounded-lg p-1 text-text-tertiary hover:bg-surface-container lg:hidden"
+            className="ml-auto rounded-lg p-1.5 text-admin-text-tertiary hover:bg-admin-surface-container lg:hidden"
             aria-label="Close sidebar"
           >
-            <HiOutlineXMark className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 p-3 overflow-y-auto" aria-label="Admin navigation">
-          {sidebarLinks.map((link) => {
-            const Icon = link.icon;
-            const active = isActive(link.href);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                  active
-                    ? 'bg-brand-teal/10 text-brand-teal dark:bg-brand-teal/15'
-                    : 'text-text-secondary hover:bg-surface-container hover:text-text-primary'
-                }`}
-                aria-current={active ? 'page' : undefined}
-              >
-                <Icon
-                  className={`h-5 w-5 transition-colors ${
-                    active
-                      ? 'text-brand-teal'
-                      : 'text-text-tertiary group-hover:text-text-secondary'
-                  }`}
-                />
-                {link.label}
-                {active && (
-                  <motion.div
-                    layoutId="sidebar-active"
-                    className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-teal"
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  />
-                )}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5 custom-scrollbar" aria-label="Admin navigation">
+          {sidebarGroups.map((group, groupIndex) => (
+            <div key={groupIndex} className="space-y-1">
+              {!sidebarCollapsed && (
+                <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-admin-text-tertiary mb-2">
+                  {group.label}
+                </p>
+              )}
+              {group.items.map((link) => {
+                const Icon = link.icon;
+                const active = isActive(link.href);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    title={sidebarCollapsed ? link.label : undefined}
+                    className="relative group flex items-center rounded-lg font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-admin-border"
+                    aria-current={active ? 'page' : undefined}
+                  >
+                    {/* Active Indicator Line */}
+                    {active && !sidebarCollapsed && (
+                      <motion.div
+                        layoutId="active-nav-indicator"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-admin-brand"
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    
+                    <div className={`flex w-full items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
+                      active
+                        ? 'bg-admin-surface-container text-admin-text-primary shadow-admin-sm border border-admin-border/50'
+                        : 'text-admin-text-secondary border border-transparent hover:bg-admin-surface-container/50 hover:text-admin-text-primary'
+                    }`}>
+                      <Icon
+                        className={`h-[18px] w-[18px] shrink-0 transition-colors ${
+                          active ? 'text-admin-text-primary' : 'text-admin-text-tertiary group-hover:text-admin-text-secondary'
+                        }`}
+                      />
+                      {!sidebarCollapsed && (
+                        <span className="text-[14px] truncate leading-none pt-0.5">{link.label}</span>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="border-t border-border p-3">
+        <div className="border-t border-admin-border/50 p-3 space-y-1 shrink-0">
+          <button
+            onClick={toggleSidebarCollapse}
+            className={`hidden lg:flex w-full items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} rounded-lg px-3 py-2 text-[14px] font-medium text-admin-text-secondary transition-colors hover:bg-admin-surface-container hover:text-admin-text-primary`}
+            title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            <Menu className="h-[18px] w-[18px] shrink-0 text-admin-text-tertiary" />
+            {!sidebarCollapsed && <span className="pt-0.5">Collapse</span>}
+          </button>
+          
           <button
             onClick={signOut}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary transition-all duration-200 hover:bg-red-500/10 hover:text-red-500"
+            className={`flex w-full items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} rounded-lg px-3 py-2 text-[14px] font-medium text-admin-text-secondary transition-colors hover:bg-red-500/10 hover:text-red-500`}
             aria-label="Sign out"
+            title={sidebarCollapsed ? "Sign out" : undefined}
           >
-            <HiOutlineArrowRightOnRectangle className="h-5 w-5" />
-            Sign Out
+            <LogOut className={`h-[18px] w-[18px] shrink-0 ${sidebarCollapsed ? 'text-admin-text-tertiary hover:text-red-500' : ''}`} />
+            {!sidebarCollapsed && <span className="pt-0.5">Sign Out</span>}
           </button>
         </div>
-      </aside>
+      </motion.aside>
 
       {/* Main Content Area */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden bg-admin-surface-container">
         {/* Top Header */}
-        <header className="flex h-16 shrink-0 items-center gap-4 border-b border-border bg-surface/80 px-4 backdrop-blur-xl dark:bg-[#0d1117]/80 sm:px-6">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="rounded-lg p-2 text-text-secondary hover:bg-surface-container lg:hidden"
-            aria-label="Open sidebar"
-          >
-            <HiOutlineBars3 className="h-5 w-5" />
-          </button>
+        <header className="flex h-[72px] shrink-0 items-center justify-between border-b border-admin-border/50 bg-admin-surface px-6 lg:px-8 z-10">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="rounded-lg p-2 text-admin-text-secondary hover:bg-admin-surface-container lg:hidden outline-none focus-visible:ring-2 focus-visible:ring-admin-border"
+              aria-label="Open sidebar"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
 
-          <h1 className="text-lg font-semibold text-text-primary font-display">
-            Admin Panel
-          </h1>
-
-          <div className="ml-auto flex items-center gap-4">
-            <span className="hidden text-xs text-text-tertiary sm:block">
-              {user.email}
-            </span>
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-brand-teal to-brand-blue flex items-center justify-center text-xs font-bold text-white uppercase">
-              {user.email?.charAt(0) || 'A'}
+            <div className="hidden md:flex flex-col justify-center">
+              <h1 className="text-xl font-semibold text-admin-text-primary tracking-tight leading-tight">
+                {getGreeting()}, {capitalizedName} 👋
+              </h1>
+              <p className="text-[13px] text-admin-text-tertiary leading-tight mt-1">
+                Here's what's happening in Student Hub today.
+              </p>
             </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* Premium Search */}
+            <div className="hidden lg:flex items-center relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-[15px] w-[15px] text-admin-text-tertiary group-focus-within:text-admin-text-primary transition-colors" />
+              <input
+                type="text"
+                placeholder="Search anything..."
+                className="w-64 rounded-full border border-admin-border/50 bg-admin-surface-container py-[7px] pl-[34px] pr-[54px] text-[13px] text-admin-text-primary placeholder:text-admin-text-tertiary focus:border-admin-border focus:bg-admin-surface focus:shadow-admin-sm focus:outline-none transition-all"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center gap-1 opacity-60">
+                <kbd className="font-sans text-[10px] font-medium border border-admin-border/50 rounded-md px-1.5 py-0.5 bg-admin-surface">Ctrl</kbd>
+                <kbd className="font-sans text-[10px] font-medium border border-admin-border/50 rounded-md px-1.5 py-0.5 bg-admin-surface">K</kbd>
+              </div>
+            </div>
+
+            <div className="h-5 w-px bg-admin-border/50 hidden sm:block mx-1" />
+
+            {/* Actions */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={toggleTheme}
+                className="rounded-full p-2 text-admin-text-tertiary hover:bg-admin-surface-container hover:text-admin-text-primary transition-colors outline-none focus-visible:ring-2 focus-visible:ring-admin-border"
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+              </button>
+              
+              <button
+                className="relative rounded-full p-2 text-admin-text-tertiary hover:bg-admin-surface-container hover:text-admin-text-primary transition-colors outline-none focus-visible:ring-2 focus-visible:ring-admin-border"
+                aria-label="Notifications"
+              >
+                <Bell className="h-[18px] w-[18px]" />
+                <span className="absolute right-2 top-2.5 h-1.5 w-1.5 rounded-full bg-admin-brand ring-2 ring-admin-surface" />
+              </button>
+            </div>
+
+            {/* Profile */}
+            <button className="flex h-8 w-8 items-center justify-center rounded-full bg-admin-surface-container border border-admin-border/50 text-admin-text-primary text-[13px] font-semibold shadow-admin-sm outline-none hover:shadow-admin focus-visible:ring-2 focus-visible:ring-admin-brand focus-visible:ring-offset-2 transition-all ml-1">
+              {capitalizedName.charAt(0)}
+            </button>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">
-          <motion.div
-            key={pathname}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="p-4 sm:p-6 lg:p-8"
-          >
-            {children}
-          </motion.div>
+        <main className="flex-1 overflow-y-auto custom-scrollbar relative">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={pathname}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="p-6 lg:p-8 max-w-[1440px] mx-auto min-h-full flex flex-col gap-8"
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>

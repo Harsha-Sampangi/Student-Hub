@@ -1,12 +1,31 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { useState, useRef } from 'react';
 import JoinCommunityModal from './JoinCommunityModal';
 import Link from 'next/link';
 
 export default function HeroSection() {
   const [joinOpen, setJoinOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [btnPos, setBtnPos] = useState({ x: 0, y: 0 });
+
+  const { scrollY } = useScroll();
+  const y1 = useTransform(scrollY, [0, 1000], [0, 400]);
+  const y2 = useTransform(scrollY, [0, 1000], [0, -300]);
+  const y3 = useTransform(scrollY, [0, 1000], [0, 200]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!buttonRef.current) return;
+    const { left, top, width, height } = buttonRef.current.getBoundingClientRect();
+    const x = e.clientX - (left + width / 2);
+    const y = e.clientY - (top + height / 2);
+    setBtnPos({ x: x * 0.3, y: y * 0.3 });
+  };
+
+  const handleMouseLeave = () => {
+    setBtnPos({ x: 0, y: 0 });
+  };
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20" aria-label="Hero">
@@ -14,17 +33,20 @@ export default function HeroSection() {
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
         {/* Gradient orbs */}
         <motion.div
-          animate={{ x: [0, 30, 0], y: [0, -20, 0] }}
+          style={{ y: y1 }}
+          animate={{ x: [0, 30, 0] }}
           transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
           className="absolute top-20 -left-32 w-96 h-96 rounded-full bg-brand-teal/10 blur-3xl"
         />
         <motion.div
-          animate={{ x: [0, -20, 0], y: [0, 30, 0] }}
+          style={{ y: y2 }}
+          animate={{ x: [0, -20, 0] }}
           transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
           className="absolute top-40 -right-32 w-96 h-96 rounded-full bg-brand-blue/10 blur-3xl"
         />
         <motion.div
-          animate={{ x: [0, 15, 0], y: [0, 15, 0] }}
+          style={{ y: y3 }}
+          animate={{ x: [0, 15, 0] }}
           transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
           className="absolute -bottom-20 left-1/3 w-80 h-80 rounded-full bg-brand-amber/10 blur-3xl"
         />
@@ -61,7 +83,7 @@ export default function HeroSection() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1 }}
-          className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.05] mb-6"
+          className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tighter leading-[1.05] mb-6"
         >
           India&apos;s Open{' '}
           <span className="text-gradient-brand">
@@ -96,17 +118,22 @@ export default function HeroSection() {
           transition={{ duration: 0.7, delay: 0.4 }}
           className="flex flex-col sm:flex-row items-center justify-center gap-4"
         >
-          <button
+          <motion.button
+            ref={buttonRef}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            animate={{ x: btnPos.x, y: btnPos.y }}
+            transition={{ type: 'spring', stiffness: 150, damping: 15, mass: 0.1 }}
             onClick={() => setJoinOpen(true)}
-            className="group relative px-8 py-4 bg-brand-teal hover:bg-brand-teal-dark text-white font-semibold rounded-2xl shadow-lg shadow-brand-teal/25 hover:shadow-xl hover:shadow-brand-teal/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] text-base"
+            className="group relative px-8 py-4 bg-brand-teal hover:bg-brand-teal-dark text-white font-semibold rounded-2xl shadow-lg shadow-brand-teal/25 hover:shadow-xl hover:shadow-brand-teal/30 transition-colors duration-300 hover:scale-[1.02] active:scale-[0.98] text-base"
           >
-            <span className="relative z-10 flex items-center gap-2">
+            <span className="relative z-10 flex items-center gap-2 pointer-events-none">
               Join Community
               <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
             </span>
-          </button>
+          </motion.button>
           <Link
             href="/opportunities"
             className="px-8 py-4 border border-border hover:border-brand-teal/30 text-text-primary hover:text-brand-teal font-semibold rounded-2xl transition-all duration-300 hover:bg-brand-teal/5 hover:scale-[1.02] active:scale-[0.98] text-base"
